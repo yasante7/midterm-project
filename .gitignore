@@ -1,0 +1,3 @@
+# Exclude models folder and files
+models/
+et_model.bin
