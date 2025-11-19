@@ -190,33 +190,12 @@ Notes and troubleshooting
 
 Enjoy! 
 
-## Docker (example)
-
-Create a `Dockerfile` like the following and build the image. This example is a recommended convenience; a `Dockerfile` is not included by default in this folder but may be added for submission.
-
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY . .
-RUN pip install -r requirements.txt
-EXPOSE 5000
-CMD ["python", "app.py"]
-```
-
-Build & run (local):
-
-```bash
-docker build -t appliances-energy-app .
-docker run -p 5000:5000 appliances-energy-app
-```
-
 ## Limitations & Next Steps
 
 - Dataset scope: the UCI dataset is from a single household/location and may not generalise to other homes or climates.
 - Model bundle: the current serving approach pickles a model+scaler+feature list. For production, prefer a reproducible pipeline (e.g. sklearn Pipeline or joblib) and avoid insecure pickle loading for untrusted inputs.
 - Preprocessing gaps: the server assumes one-hot encoding and numeric inputs; it fills missing features with zeros. A more robust preprocessor that replicates notebook encoding (categories, missing-value handling) would improve reliability.
-- Deployment: add integration tests, CI checks, a Dockerfile in the repo, and optionally deploy to a cloud platform.
-- Monitoring & fairness: add drift detection and monitoring for model degradation over time.
+
 
 ## Reproducibility
 
@@ -224,4 +203,5 @@ To reproduce the results, run `data_analysis.ipynb` end-to-end (or refactor to `
 
 ## References
 
-Include paper and dataset references in your final report. Use citation placeholders like (Author, Year) if needed.
+L. Candanedo, V. Feldheim, and D. Deramaix, “Data driven prediction models of energy use of appliances in a low-energy house,” Energy Build, vol. 140, pp. 81–97, 2017, doi: 10.1016/J.ENBUILD.2017.01.083.
+[2]	C. F. Assadian and F. Assadian, “Data-Driven Modeling of Appliance Energy Usage,” Energies (Basel), p., 2023, doi: 10.3390/en16227536.
