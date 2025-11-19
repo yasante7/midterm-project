@@ -1,4 +1,4 @@
-# Appliances Energy Prediction — Project README
+# Appliances Energy Prediction
 
 ## Project Summary
 
@@ -18,6 +18,40 @@ Predict short-term appliance energy consumption in a single-family residential b
 
 Data is stored in `data/energydata_complete.csv` and is preprocessed, feature-engineered and split in `data_analysis.ipynb`.
 
+## Variables and their Description
+
+| Variable     | Description                                           |
+|-------------|-------------------------------------------------------|
+| date        | Time (year-month-day hour:minute)                     |
+| Appliances  | Energy use in Wh                                     |
+| lights      | Energy use of light fixtures in the house in Wh      |
+| T1          | Temperature in kitchen area, in Celsius             |
+| RH_1        | Humidity in kitchen area, in %                       |
+| T2          | Temperature in living room area, in Celsius         |
+| RH_2        | Humidity in living room area, in %                  |
+| T3          | Temperature in laundry room area, in Celsius        |
+| RH_3        | Humidity in laundry room area, in %                 |
+| T4          | Temperature in office room, in Celsius              |
+| RH_4        | Humidity in office room, in %                       |
+| T5          | Temperature in bathroom, in Celsius                 |
+| RH_5        | Humidity in bathroom, in %                           |
+| T6          | Temperature outside the building (north side), in Celsius |
+| RH_6        | Humidity outside the building (north side), in %    |
+| T7          | Temperature in ironing room, in Celsius             |
+| RH_7        | Humidity in ironing room, in %                      |
+| T8          | Temperature in teenager room 2, in Celsius          |
+| RH_8        | Humidity in teenager room 2, in %                   |
+| T9          | Temperature in parents room, in Celsius             |
+| RH_9        | Humidity in parents room, in %                      |
+| To          | Temperature outside (from Chièvres weather station), in Celsius |
+| Pressure    | Pressure (from Chièvres weather station), in mm Hg  |
+| RH_out      | Humidity outside (from Chièvres weather station), in % |
+| Windspeed   | Windspeed (from Chièvres weather station), in m/s   |
+| Visibility  | Visibility (from Chièvres weather station), in km   |
+| Tdewpoint   | Tdewpoint (from Chièvres weather station), °C       |
+| rv1         | Random variable 1, nondimensional                  |
+| rv2         | Random variable 2, nondimensional                  |
+
 ## Feature Engineering & EDA (brief)
 
 - Temporal features extracted from the timestamp: seconds-from-midnight (NSM), hour, day, month, day-of-week, week status (Weekend/Weekday), and cyclic encodings for hour (`Hour_sin`, `Hour_cos`).
@@ -29,7 +63,7 @@ Data is stored in `data/energydata_complete.csv` and is preprocessed, feature-en
 
 Models trained and compared:
 - Multiple Linear Regression (LM)
-- Logistic Regression (Logit) — included as baseline (note: logistic is not ideal for regression targets; kept for experimentation)
+- Logistic Regression (Logit) — included as baseline (kept for experimentation)
 - Decision Tree Regressor (DT)
 - Random Forest Regressor (RF)
 - Extra Trees Regressor (ET)
@@ -63,45 +97,98 @@ Key result (notebook)
 - `predict.py` — small CLI helper to run a single-sample prediction using `et_model.bin`.
 - `requirements.txt` — Python dependency list.
 
-## How to run locally (PowerShell)
 
-1) (Optional) Create and activate a virtual environment
+Running the Flask app and using the CLI predictor
+===============================================
 
+This document explains how to run the Flask web app (`app.py`) and how to call the CLI `predict.py` provided in this folder.
+
+Prerequisites
+-------------
+- Python 3.8+ installed
+- Recommended: create a virtual environment and install required packages.
+
+Quick setup (PowerShell)
+------------------------
 ```powershell
-python -m venv .venv; .\.venv\Scripts\Activate.ps1
-```
+# Go to the Flask app folder
+cd "\midterm\Flask-App"
 
-2) Install dependencies
+# Create and activate a virtual environment (PowerShell)
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 
-```powershell
+# Install dependencies
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-3) Ensure the notebook has created the model bundle `et_model.bin` in this folder. If not, run the final notebook cell that creates `model_bundle` and pickles it.
-
-4) Start the Flask app
-
+Place the trained model
+-----------------------
+- The app expects the model file `extra_trees_energy_model.bin` to live in the same folder as `app.py`.
+- After training (or when you obtain the trained bundle), copy it here:
+- Alternatively, running the `train.py` will create the model for you.
 ```powershell
+copy "..\extra_trees_energy_model.bin" .
+# or move the file into this folder in Explorer
+```
+
+Run the Flask app (local)
+-------------------------
+```powershell
+# Start the app (development server)
 python app.py
+# The app will start on http://0.0.0.0:5000 (open http://localhost:5000 in the browser)
 ```
 
-The server listens on `http://0.0.0.0:5000/` by default. Use the web UI or send JSON to `/predict`.
+Use the web UI
+--------------
+- Open `http://localhost:5000` in your browser. The page shows a preview of model features and a JSON form to send a single prediction.
 
-## API Usage Examples
-
-POST a single-sample feature dict (PowerShell `curl`):
-
+Call the API while the app is running at the localhost. Use any of these:
+---------------------------
+- Single sample (JSON object of feature:value pairs):
 ```powershell
-curl -X POST -H "Content-Type: application/json" -d '{"T1": 20, "RH_1": 40}' http://127.0.0.1:5000/predict
+curl -X POST -H "Content-Type: application/json" -d "{\"T1\": 20, \"RH_1\": 40, \"Hour_sin\": 0.0, ... }" http://localhost:5000/predict
 ```
 
-The endpoint accepts either a top-level feature mapping or an object with a `features` key, e.g. `{"features": {"T1": 20, ...}}`.
-
-Using the CLI helper:
-
+- Use this if CURL fails:
 ```powershell
-python predict.py --json '{"T1": 20, "RH_1": 40}'
+$body = @{
+    T1 = 20
+    RH_1 = 40
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://127.0.0.1:5000/predict" -Method POST -Body $body -ContentType "application/json"
 ```
+
+- The response is JSON: `{ "predictions": [ <value> ], "n_features": <int> }`.
+
+Using `predict.py` from the command line
+--------------------------------------
+- `predict.py` supports single-dict prediction and batch CSV prediction. Example usages from this folder:
+
+Single JSON (print result):
+```powershell
+python predict.py -d "{\"T1\":20.5, \"RH_1\":30, \"Hour_sin\":0.0, ... }"
+```
+
+Single JSON (file) (output printed):
+```powershell
+python predict.py -df path\to\my_inputs.json
+```
+Batch CSV (output printed):
+```powershell
+python predict.py -b path\to\my_inputs.csv
+```
+
+Notes and troubleshooting
+-------------------------
+- The feature names used by the model are recorded inside the model bundle under the `features` key. Ensure any input JSON or CSV includes these columns (or at least the keys) — missing features will be filled with zeros by the app.
+- If you changed the model filename or structure, update `MODEL_PATH` inside `app.py` or place the model file in this directory with the expected name.
+- For production use, run the Flask app behind a WSGI server (Gunicorn, Waitress) and disable `debug=True`.
+
+Enjoy! 
 
 ## Docker (example)
 
